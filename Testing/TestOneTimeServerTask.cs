@@ -15,7 +15,7 @@ public class TestOneTimeServerTask : OneTimeServerTask
         OnCompleted += delegate { Console.WriteLine($""); };
     }
 
-    protected override void TaskLogic(ServerTaskManager serverTaskManager)
+    protected override void TaskLogic(ServerTaskManager serverTaskManager, ServerTaskProject serverTaskProject)
     {
         Console.WriteLine($"{TaskName}");
 

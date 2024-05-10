@@ -13,7 +13,7 @@ public sealed class ServerTaskGroup : OneTimeServerTask
     /// <summary>
     /// The type of task group this is.
     /// </summary>
-    public ServerTaskGroupType GroupType { get; }
+    private ServerTaskGroupType GroupType { get; }
 
     public ServerTaskGroup(string name, ServerTaskGroupType groupType, params ServerTask[] tasks)
         : base(name, false)
@@ -25,16 +25,16 @@ public sealed class ServerTaskGroup : OneTimeServerTask
             _taskQueue.Enqueue(task);
     }
 
-    protected override void TaskLogic(ServerTaskManager serverTaskManager)
+    protected override void TaskLogic(ServerTaskManager serverTaskManager, ServerTaskProject serverTaskProject)
     {
         switch (GroupType)
         {
             case ServerTaskGroupType.Sequential:
-                RunSequential(serverTaskManager);
+                RunSequential(serverTaskManager, serverTaskProject);
                 break;
 
             case ServerTaskGroupType.Asynchronous:
-                RunAsynchronous(serverTaskManager);
+                RunAsynchronous(serverTaskManager, serverTaskProject);
                 break;
 
             default:
@@ -42,23 +42,24 @@ public sealed class ServerTaskGroup : OneTimeServerTask
         }
     }
 
-    private void RunSequential(ServerTaskManager serverTaskManager)
+    private void RunSequential(ServerTaskManager serverTaskManager, ServerTaskProject serverTaskProject)
     {
         // Run each task in the queue
-        while (_taskQueue.Count > 0)
+        // Make sure the task is ready to run
+        while (_taskQueue.Count > 0 && _taskQueue.Peek().ReadyToRun)
         {
             // Get the next task
             var task = _taskQueue.Dequeue();
             
             // Create a C# task from the server task
-            var cTask = new Task(() => task.Run(serverTaskManager));
+            var cTask = new Task(() => task.Run(serverTaskManager, serverTaskProject));
             
             // Run the task synchronously
             cTask.RunSynchronously();
         }
     }
 
-    private void RunAsynchronous(ServerTaskManager serverTaskManager)
+    private void RunAsynchronous(ServerTaskManager serverTaskManager, ServerTaskProject serverTaskProject)
     {
         // Create a list of the current C# tasks.
         List<Task> currentTasks = new();
@@ -70,7 +71,7 @@ public sealed class ServerTaskGroup : OneTimeServerTask
             var task = _taskQueue.Dequeue();
 
             // Run the task asynchronously
-            var cTask = Task.Run(() => task.Run(serverTaskManager));
+            var cTask = Task.Run(() => task.Run(serverTaskManager, serverTaskProject));
 
             // Add the C# task to the list
             currentTasks.Add(cTask);

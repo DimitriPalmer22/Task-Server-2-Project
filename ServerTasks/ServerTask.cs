@@ -30,6 +30,8 @@ public abstract class ServerTask
     /// </summary>
     protected internal bool Awaited { get; init; }
 
+    internal Task Task { get; private set; }
+
     #endregion Properties
 
     protected ServerTask(string name, bool awaited)
@@ -50,23 +52,24 @@ public abstract class ServerTask
     /// The method outside classes will use to run the task.
     /// This method should only really be called by the <see cref="ServerTaskManager"/>.
     /// </summary>
-    internal void Run(ServerTaskManager serverTaskManager)
+    internal void Run(ServerTaskManager serverTaskManager, ServerTaskProject project)
     {
         // Invoke the OnStarted event.
-        OnStarted?.Invoke(this, ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Started));
+        OnStarted?.Invoke(this,
+            ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Started, project));
 
         var ranSuccessfully = true;
 
         // Run the task logic.
         try
         {
-            TaskLogic(serverTaskManager);
+            TaskLogic(serverTaskManager, project);
         }
         catch (Exception e)
         {
             // Invoke the OnCompleted event
             OnFailed?.Invoke(this,
-                ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Failed));
+                ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Failed, project));
 
             ranSuccessfully = false;
         }
@@ -74,15 +77,34 @@ public abstract class ServerTask
         // Invoke the OnCompleted event
         if (ranSuccessfully)
             OnCompleted?.Invoke(this,
-                ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Completed));
+                ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Completed, project));
     }
 
     /// <summary>
     /// The method that will be called when the task is started.
     /// This method handles the actual logic of the task.
     /// </summary>
-    protected abstract void TaskLogic(ServerTaskManager serverTaskManager);
+    protected abstract void TaskLogic(ServerTaskManager serverTaskManager, ServerTaskProject serverTaskProject);
 
+    /// <summary>
+    /// Create a C# Task object for this server task.
+    /// This method should only be run within the task manager.
+    /// </summary>
+    /// <param name="serverTaskManager"></param>
+    /// <param name="project"></param>
+    /// <returns></returns>
+    internal Task CreateTask(ServerTaskManager serverTaskManager, ServerTaskProject project)
+    {
+        // If the task has already been created, return it.
+        if (Task != null)
+            return Task;
+        
+        // Create a new task
+        Task = new Task(() => Run(serverTaskManager, project));
+        
+        return Task;
+    }
+    
     #endregion Methods
 
     #region Static Methods
