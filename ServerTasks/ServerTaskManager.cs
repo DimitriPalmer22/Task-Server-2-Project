@@ -98,6 +98,9 @@ public sealed class ServerTaskManager
         // Prevent the creation of multiple instances of the ServerTaskManager
         if (_instance != null)
             throw new InvalidOperationException("Cannot create multiple instances of the ServerTaskManager.");
+
+        // Hook up the event to re-add tasks to the project
+        OnTaskCompleted += ReAdd;
     }
 
     public void AddProject(ServerTaskProject project)
@@ -118,7 +121,7 @@ public sealed class ServerTaskManager
         // Add the projects to the server task manager
         foreach (var project in projects)
             AddProject(project);
-        
+
         // Create a new thread
         _thread = new Thread(Run);
 
@@ -159,13 +162,17 @@ public sealed class ServerTaskManager
                 // Create a new C# task that will run the server task
                 var cTask = task.CreateTask(this, project);
 
-                // Hook up the events to manage the active tasks
-                task.OnStarted += ManageActiveTasks;
-                task.OnCompleted += ManageActiveTasks;
-                task.OnFailed += ManageActiveTasks;
+                // Hook up the events to manage the active tasks if the task has not run before
 
-                task.OnCompleted += NotifyTaskCompleted;
-                task.OnFailed += NotifyTaskFailed;
+                if (!task.ActivationCondition.HasRunBefore)
+                {
+                    task.OnStarted += ManageActiveTasks;
+                    task.OnCompleted += ManageActiveTasks;
+                    task.OnFailed += ManageActiveTasks;
+
+                    task.OnCompleted += NotifyTaskCompleted;
+                    task.OnFailed += NotifyTaskFailed;
+                }
 
                 // Start the C# task
                 cTask.Start();
@@ -193,7 +200,7 @@ public sealed class ServerTaskManager
 
         // Stop running the thread
         _thread.Join();
-                
+
         // Print a blank line
         DebugLog.Instance.WriteLine("\n");
 
@@ -246,6 +253,20 @@ public sealed class ServerTaskManager
                 break;
             }
         }
+    }
+
+    private static void ReAdd(ServerTaskManager sender, TaskManagerEventArgs e)
+    {
+        // If the task does not have the AddBackToTaskManager flag, return
+        if (!e.Task.ActivationCondition.AddBackToTaskManager)
+            return;
+
+        // Re-add the task to the project
+        e.Project.EnqueueTask(e.Task);
+
+        // Log the event
+        DebugLog.Instance.Log(LogType.TaskManager,
+            $"({sender.ActiveTaskCount,3} Active Tasks). \"{e.Task.TaskName}\" was re-added to the task project.");
     }
 
     /// <summary>

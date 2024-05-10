@@ -40,11 +40,24 @@ public class TestServerTaskProject : ServerTaskProject
             );
             EnqueueTask(task);
         });
+        _keyActions.Add(ConsoleKey.D7, RecurringTaskTest);
     }
 
     public void Start()
     {
         _running = true;
+
+        EnqueueTask(
+            new FunctionWrapperServerTask(
+                "Recurring Test",
+                new RecurringActivationCondition(DateTime.Now, new TimeSpan(0, 1, 0 )),
+                () =>
+                {
+                    DebugLog.Instance.WriteLine($" - Please Bro {DateTime.Now}");
+                }
+            )
+        );
+
         Run();
     }
 
@@ -90,45 +103,44 @@ public class TestServerTaskProject : ServerTaskProject
         EnqueueTask(new TestServerTask(activationCondition, 5));
     }
 
-
     private void ActionWrapperTest()
     {
         const int constIterations = 10;
         const int constWaitTime = 100;
-        
+
         void WrapperBody1()
         {
             // Get the start time
             var startTime = DateTime.Now;
-            
+
             for (int i = 0; i < constIterations; i++)
                 DebugLog.Instance.WriteLine($"Wrapper iteration {i + 1}");
-            
+
             // Get the end time
             var endTime = DateTime.Now;
-            
+
             // Calculate the elapsed time
             var elapsedTime = endTime - startTime;
-            
+
             DebugLog.Instance.WriteLine($"Wrapper 1 took {elapsedTime.TotalMilliseconds} milliseconds to complete");
         }
 
         void WrapperBody2(int iterations, string message, int waitTime)
         {
             _ = waitTime;
-            
+
             // Get the start time
             var startTime = DateTime.Now;
-            
+
             for (int i = 0; i < iterations; i++)
                 DebugLog.Instance.WriteLine($"{message}. Iteration {i + 1}");
-            
+
             // Get the end time
             var endTime = DateTime.Now;
-            
+
             // Calculate the elapsed time
             var elapsedTime = endTime - startTime;
-            
+
             DebugLog.Instance.WriteLine($"Wrapper 2 took {elapsedTime.TotalMilliseconds} milliseconds to complete");
         }
 
@@ -153,7 +165,15 @@ public class TestServerTaskProject : ServerTaskProject
     {
         EnqueueTask(new FunctionWrapperServerTask(
             "Exception Task", new SimpleActivationCondition(),
-            () => throw new NotImplementedException("Forced Exception Call")));
+            () => throw new TypeAccessException("Forced Exception Call")));
+    }
+
+    private void RecurringTaskTest()
+    {
+        var activationCondition = new RecurringActivationCondition(
+            DateTime.Now, TimeSpan.FromSeconds(2), 5);
+
+        EnqueueTask(new TestServerTask(activationCondition, 3));
     }
 
     #endregion

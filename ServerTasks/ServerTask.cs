@@ -46,7 +46,10 @@ public abstract class ServerTask
     protected ServerTask(string name, IActivationCondition activationCondition)
     {
         TaskName = name;
+
         ActivationCondition = activationCondition;
+        ActivationCondition.ServerTask = this;
+        ActivationCondition.HookEvents(this);
     }
 
     #region Methods
@@ -59,9 +62,13 @@ public abstract class ServerTask
     {
         // Invoke the OnStarted event.
         OnStarted?.Invoke(this,
-            ServerTaskEventArgs.ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Started, project));
+            ServerTaskEventArgs.ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Started,
+                project));
 
         var ranSuccessfully = true;
+
+        // Update the Has Run Before flag
+        ActivationCondition.HasRunBefore = true;
 
         // Run the task logic.
         try
@@ -72,7 +79,8 @@ public abstract class ServerTask
         {
             // Invoke the OnFailed event
             OnFailed?.Invoke(this,
-                ServerTaskErrorEventArgs.ErrorArgs(this, serverTaskManager, ServerTaskEventType.Failed, project, exception));
+                ServerTaskErrorEventArgs.ErrorArgs(this, serverTaskManager, ServerTaskEventType.Failed, project,
+                    exception));
 
             ranSuccessfully = false;
         }
@@ -80,7 +88,8 @@ public abstract class ServerTask
         // Invoke the OnCompleted event
         if (ranSuccessfully)
             OnCompleted?.Invoke(this,
-                ServerTaskEventArgs.ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Completed, project));
+                ServerTaskEventArgs.ServerTaskEventArgs.DefaultArgs(this, serverTaskManager,
+                    ServerTaskEventType.Completed, project));
     }
 
     /// <summary>
@@ -98,12 +107,14 @@ public abstract class ServerTask
     /// <returns></returns>
     internal Task CreateTask(ServerTaskManager serverTaskManager, ServerTaskProject project)
     {
-        // If the task has already been created, return it.
-        if (Task != null)
-            return Task;
-
-        // Create a new task
-        Task = new Task(() => Run(serverTaskManager, project));
+        // If the task has not already been created, or
+        // the task is recurring, and it is completed,
+        // create a new task.
+        if (
+            Task == null ||
+            (ActivationCondition.AddBackToTaskManager && Task is { IsCompleted: true })
+        )
+            Task = new Task(() => Run(serverTaskManager, project));
 
         return Task;
     }
@@ -130,7 +141,7 @@ public abstract class ServerTask
         {
             if (e is not ServerTaskErrorEventArgs errorArgs)
                 return;
-            
+
             if (errorArgs.Exception == null)
                 return;
 
