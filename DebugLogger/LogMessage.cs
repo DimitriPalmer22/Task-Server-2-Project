@@ -17,6 +17,11 @@ public record LogMessage
     /// </summary>
     private readonly List<(int level, string message)> _subMessages = new();
 
+    /// <summary>
+    /// Get a read-only collection of the sub messages.
+    /// </summary>
+    public IReadOnlyCollection<(int level, string message)> SubMessages => _subMessages;
+    
     [SetsRequiredMembers]
     public LogMessage(LogType logType, string message, params (int level, string message)[] subMessages)
     {
@@ -41,16 +46,13 @@ public record LogMessage
 
     public override string ToString()
     {
-        // Get the color for the log type
-        var logColor = DebugLog.Instance.LogLevelColors[LogType];
-
         // Create the sub message string
         var subMessageString = "";
         foreach (var (level, subMessage) in _subMessages)
-            subMessageString += $"\n\t{new string('\t', level)}{logColor}{subMessage}{LogColor.RESET}";
+            subMessageString += $"\n\t{new string('\t', level)}{subMessage}";
         
         // Create the main string
-        var mainString = $"{logColor}({DateTime:MM/dd/yyyy hh:mm:ss tt}) [{LogType.ToString().ToUpper(), -12}]: {Message}{LogColor.RESET}";
+        var mainString = $"({DateTime:MM/dd/yyyy hh:mm:ss tt}) [{LogType.ToString().ToUpper(), -12}]: {Message}";
 
         // Return the main string with the sub message string
         return mainString + subMessageString;

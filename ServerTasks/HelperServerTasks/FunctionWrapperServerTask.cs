@@ -1,6 +1,6 @@
 using Task_Server_2.ServerTasks.ActivationConditions;
 
-namespace Task_Server_2.ServerTasks;
+namespace Task_Server_2.ServerTasks.HelperServerTasks;
 
 public class FunctionWrapperServerTask : ServerTask
 {

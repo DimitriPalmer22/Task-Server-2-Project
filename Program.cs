@@ -1,4 +1,6 @@
-﻿using Task_Server_2.DebugLogger;
+﻿using System.Diagnostics;
+using Task_Server_2.DebugLogger;
+using Task_Server_2.DebugLogger.LogOutput;
 using Task_Server_2.ServerTasks;
 using Task_Server_2.Testing;
 
@@ -8,32 +10,43 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        // Get the instance of the server task manager
-        var serverTaskManager = ServerTaskManager.Instance;
-
-        // Start the server task manager
-        serverTaskManager.Start();
+        // Change where the log messages are outputted
+        DebugLog.Instance.AddLogOutput(new FileOutput("Test.txt"));
+        DebugLog.Instance.AddLogOutput(new RealTimeConsoleLogOutput());
 
         // Create a new server task project
         var serverTaskProject = new TestServerTaskProject();
 
-        // Add the project to the server task manager
-        serverTaskManager.AddProject(serverTaskProject);
-        
+        // Start the server task manager
+        ServerTaskManager.Instance.Start(serverTaskProject);
+
         // Run the project
         serverTaskProject.Start();
-        
+
         // Stop the server task manager
-        serverTaskManager.Stop();
-        
-        // Print the log messages
-        PrintLogMessages();
+        ServerTaskManager.Instance.Stop();
     }
-    
-    private static void PrintLogMessages()
+
+    public static void SecondConsoleTest()
     {
-        Console.WriteLine("Log Messages:");
-        foreach (var message in DebugLog.Instance.MessageLog)
-            Console.WriteLine($"{message}");
+        // Create a new process for the second console
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "gnome-terminal",
+                Arguments = "--wait -- zsh -c \"echo bruh && sleep 10\"",
+
+                RedirectStandardInput = false,
+                RedirectStandardOutput = false,
+                UseShellExecute = false,
+                CreateNoWindow = false
+            }
+        };
+
+        // Start the process
+        process.Start();
+
+        process.WaitForExit();
     }
 }

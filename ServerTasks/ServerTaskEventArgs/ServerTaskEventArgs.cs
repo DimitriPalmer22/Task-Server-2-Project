@@ -1,4 +1,4 @@
-namespace Task_Server_2.ServerTasks;
+namespace Task_Server_2.ServerTasks.ServerTaskEventArgs;
 
 public class ServerTaskEventArgs : EventArgs
 {

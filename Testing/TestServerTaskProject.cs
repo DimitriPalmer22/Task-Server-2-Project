@@ -1,5 +1,7 @@
+using Task_Server_2.DebugLogger;
 using Task_Server_2.ServerTasks;
 using Task_Server_2.ServerTasks.ActivationConditions;
+using Task_Server_2.ServerTasks.HelperServerTasks;
 
 namespace Task_Server_2.Testing;
 
@@ -29,6 +31,15 @@ public class TestServerTaskProject : ServerTaskProject
         _keyActions.Add(ConsoleKey.D3, TestScheduledTask);
         _keyActions.Add(ConsoleKey.D4, ActionWrapperTest);
         _keyActions.Add(ConsoleKey.D5, ExceptionTaskTest);
+        _keyActions.Add(ConsoleKey.D6, () =>
+        {
+            var task = new FunctionWrapperServerTask(
+                "Test Wrapper Task 2",
+                new SimpleActivationCondition(),
+                Program.SecondConsoleTest
+            );
+            EnqueueTask(task);
+        });
     }
 
     public void Start()
@@ -41,7 +52,8 @@ public class TestServerTaskProject : ServerTaskProject
     {
         while (_running)
         {
-            Console.WriteLine("Press a key");
+            DebugLog.Instance.WriteLine("Press a key");
+
             var key = Console.ReadKey(true).Key;
 
             if (_keyActions.TryGetValue(key, out var action))
@@ -81,22 +93,43 @@ public class TestServerTaskProject : ServerTaskProject
 
     private void ActionWrapperTest()
     {
+        const int constIterations = 10;
+        const int constWaitTime = 100;
+        
         void WrapperBody1()
         {
-            for (int i = 0; i < 10; i++)
-            {
-                Console.WriteLine($"Wrapper iteration {i + 1}");
-                Thread.Sleep(100);
-            }
+            // Get the start time
+            var startTime = DateTime.Now;
+            
+            for (int i = 0; i < constIterations; i++)
+                DebugLog.Instance.WriteLine($"Wrapper iteration {i + 1}");
+            
+            // Get the end time
+            var endTime = DateTime.Now;
+            
+            // Calculate the elapsed time
+            var elapsedTime = endTime - startTime;
+            
+            DebugLog.Instance.WriteLine($"Wrapper 1 took {elapsedTime.TotalMilliseconds} milliseconds to complete");
         }
 
         void WrapperBody2(int iterations, string message, int waitTime)
         {
+            _ = waitTime;
+            
+            // Get the start time
+            var startTime = DateTime.Now;
+            
             for (int i = 0; i < iterations; i++)
-            {
-                Console.WriteLine($"{message}. Iteration {i + 1}");
-                Thread.Sleep(waitTime);
-            }
+                DebugLog.Instance.WriteLine($"{message}. Iteration {i + 1}");
+            
+            // Get the end time
+            var endTime = DateTime.Now;
+            
+            // Calculate the elapsed time
+            var elapsedTime = endTime - startTime;
+            
+            DebugLog.Instance.WriteLine($"Wrapper 2 took {elapsedTime.TotalMilliseconds} milliseconds to complete");
         }
 
         List<ServerTask> wrapperTasks =
@@ -104,13 +137,13 @@ public class TestServerTaskProject : ServerTaskProject
             new FunctionWrapperServerTask("Wrapper 1", new SimpleActivationCondition(), WrapperBody1),
             new FunctionWrapperServerTask(
                 "Wrapper 2", new SimpleActivationCondition(), WrapperBody2,
-                5, "Wrapper 2 Dynamic Invoke", 200
+                constIterations, "Wrapper 2 Dynamic Invoke", constWaitTime
             )
         ];
 
         // Create a task group
         var taskGroup =
-            new ServerTaskGroup("Wrapper Task Group", ServerTaskGroupType.Sequential, wrapperTasks.ToArray());
+            new ServerTaskGroup("Wrapper Task Group", ServerTaskGroupType.Asynchronous, wrapperTasks.ToArray());
 
         // Enqueue the task group
         EnqueueTask(taskGroup);
@@ -120,8 +153,7 @@ public class TestServerTaskProject : ServerTaskProject
     {
         EnqueueTask(new FunctionWrapperServerTask(
             "Exception Task", new SimpleActivationCondition(),
-            () => { throw new Exception("This is an exception"); }
-        ));
+            () => throw new NotImplementedException("Forced Exception Call")));
     }
 
     #endregion

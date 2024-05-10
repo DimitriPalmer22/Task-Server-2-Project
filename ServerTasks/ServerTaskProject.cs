@@ -14,6 +14,12 @@ public abstract class ServerTaskProject
     private readonly object _queueLock = new();
 
     /// <summary>
+    /// When this project was created.
+    /// Can be used to determine if some tasks should be run.
+    /// </summary>
+    public DateTime CreationTime { get; } = DateTime.Now;
+
+    /// <summary>
     /// Peek at the next item in the queue.
     /// </summary>
     public ServerTask NextItem

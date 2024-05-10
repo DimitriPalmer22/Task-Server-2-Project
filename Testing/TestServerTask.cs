@@ -1,3 +1,4 @@
+using Task_Server_2.DebugLogger;
 using Task_Server_2.ServerTasks;
 using Task_Server_2.ServerTasks.ActivationConditions;
 
@@ -13,17 +14,17 @@ public class TestServerTask : ServerTask
     {
         _iterations = iterations;
 
-        OnCompleted += delegate { Console.WriteLine($""); };
+        OnCompleted += delegate { DebugLog.Instance.WriteLine($""); };
     }
 
     protected override void TaskLogic(ServerTaskManager serverTaskManager, ServerTaskProject serverTaskProject)
     {
-        Console.WriteLine($"{TaskName}");
+        DebugLog.Instance.WriteLine($"{TaskName}");
 
         for (var i = 0; i < _iterations; i++)
         {
             Thread.Sleep(100);
-            Console.WriteLine($"\tTask iteration {i + 1}");
+            DebugLog.Instance.WriteLine($"\tTask iteration {i + 1}");
         }
     }
 }

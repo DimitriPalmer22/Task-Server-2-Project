@@ -2,6 +2,11 @@ using Task_Server_2.DebugLogger;
 
 namespace Task_Server_2.ServerTasks;
 
+/// <summary>
+/// Delegate used to handle events from the <see cref="ServerTaskManager"/>.
+/// </summary>
+public delegate void TaskManagerEventHandler(ServerTaskManager sender, TaskManagerEventArgs e);
+
 public sealed class ServerTaskManager
 {
     #region Fields
@@ -41,6 +46,18 @@ public sealed class ServerTaskManager
     /// How many times a second the Task Manager will check for new tasks.
     /// </summary>
     public int UpdatesPerSecond { get; set; } = 60;
+
+    #region Events
+
+    public event TaskManagerEventHandler OnStarted;
+    public event TaskManagerEventHandler OnUpdateComplete;
+    public event TaskManagerEventHandler OnStopped;
+
+    public event TaskManagerEventHandler OnTaskStarted;
+    public event TaskManagerEventHandler OnTaskCompleted;
+    public event TaskManagerEventHandler OnTaskFailed;
+
+    #endregion Events
 
     #endregion Fields
 
@@ -96,8 +113,12 @@ public sealed class ServerTaskManager
     /// Start the <see cref="ServerTaskManager"/>.
     /// This generates a new thread.
     /// </summary>
-    public void Start()
+    public void Start(params ServerTaskProject[] projects)
     {
+        // Add the projects to the server task manager
+        foreach (var project in projects)
+            AddProject(project);
+        
         // Create a new thread
         _thread = new Thread(Run);
 
@@ -106,6 +127,9 @@ public sealed class ServerTaskManager
 
         // Start the thread
         _thread.Start();
+
+        // Invoke the OnStarted event
+        OnStarted?.Invoke(this, TaskManagerEventArgs.Empty);
     }
 
     private void Run()
@@ -130,9 +154,7 @@ public sealed class ServerTaskManager
             while (taskQueue.Count > 0)
             {
                 // Get the next task
-                var queueItem = taskQueue.Dequeue();
-                var task = queueItem.serverTask;
-                var project = queueItem.taskProject;
+                var (task, project) = taskQueue.Dequeue();
 
                 // Create a new C# task that will run the server task
                 var cTask = task.CreateTask(this, project);
@@ -142,9 +164,18 @@ public sealed class ServerTaskManager
                 task.OnCompleted += ManageActiveTasks;
                 task.OnFailed += ManageActiveTasks;
 
+                task.OnCompleted += NotifyTaskCompleted;
+                task.OnFailed += NotifyTaskFailed;
+
                 // Start the C# task
                 cTask.Start();
+
+                // Invoke the OnTaskStarted event
+                OnTaskStarted?.Invoke(this, new TaskManagerEventArgs(task, project));
             }
+
+            // Invoke the OnUpdateComplete event
+            OnUpdateComplete?.Invoke(this, TaskManagerEventArgs.Empty);
 
             // Wait for the next update
             Thread.Sleep(1000 / UpdatesPerSecond);
@@ -162,9 +193,15 @@ public sealed class ServerTaskManager
 
         // Stop running the thread
         _thread.Join();
+                
+        // Print a blank line
+        DebugLog.Instance.WriteLine("\n");
+
+        // Invoke the OnStopped event
+        OnStopped?.Invoke(this, TaskManagerEventArgs.Empty);
     }
 
-    private void ManageActiveTasks(ServerTask sender, ServerTaskEventArgs e)
+    private void ManageActiveTasks(ServerTask sender, ServerTaskEventArgs.ServerTaskEventArgs e)
     {
         switch (e.ServerTaskEventType)
         {
@@ -182,7 +219,8 @@ public sealed class ServerTaskManager
                 }
 
                 // Log the event
-                DebugLog.Instance.Log(LogType.TaskManager, $"({ActiveTaskCount, 3} Active Tasks). \"{e.ServerTask.TaskName}\" was added to the active tasks list.");
+                DebugLog.Instance.Log(LogType.TaskManager,
+                    $"({ActiveTaskCount,3} Active Tasks). \"{e.ServerTask.TaskName}\" was added to the active tasks list.");
 
                 break;
             }
@@ -202,13 +240,29 @@ public sealed class ServerTaskManager
                 }
 
                 // Log the event
-                DebugLog.Instance.Log(LogType.TaskManager, $"({ActiveTaskCount, 3} Active Tasks). \"{e.ServerTask.TaskName}\" was removed from the active tasks list.");
+                DebugLog.Instance.Log(LogType.TaskManager,
+                    $"({ActiveTaskCount,3} Active Tasks). \"{e.ServerTask.TaskName}\" was removed from the active tasks list.");
 
                 break;
             }
-
-            default:
-                break;
         }
+    }
+
+    /// <summary>
+    /// A method used to notify the task manager that a task has completed.
+    /// </summary>
+    private void NotifyTaskCompleted(ServerTask sender, ServerTaskEventArgs.ServerTaskEventArgs e)
+    {
+        // Invoke the OnTaskCompleted event
+        OnTaskCompleted?.Invoke(this, new TaskManagerEventArgs(sender, e.ServerTaskProject));
+    }
+
+    /// <summary>
+    /// A method used to notify the task manager that a task has failed.
+    /// </summary>
+    private void NotifyTaskFailed(ServerTask sender, ServerTaskEventArgs.ServerTaskEventArgs e)
+    {
+        // Invoke the OnTaskCompleted event
+        OnTaskFailed?.Invoke(this, new TaskManagerEventArgs(sender, e.ServerTaskProject));
     }
 }

@@ -1,13 +1,14 @@
 using System.Diagnostics;
 using Task_Server_2.DebugLogger;
 using Task_Server_2.ServerTasks.ActivationConditions;
+using Task_Server_2.ServerTasks.ServerTaskEventArgs;
 
 namespace Task_Server_2.ServerTasks;
 
 /// <summary>
 /// A delegate for handling events related to server tasks.
 /// </summary>
-public delegate void ServerTaskEventHandler(ServerTask sender, ServerTaskEventArgs e);
+public delegate void ServerTaskEventHandler(ServerTask sender, ServerTaskEventArgs.ServerTaskEventArgs e);
 
 /// <summary>
 /// An abstract class to represent a task.
@@ -58,7 +59,7 @@ public abstract class ServerTask
     {
         // Invoke the OnStarted event.
         OnStarted?.Invoke(this,
-            ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Started, project));
+            ServerTaskEventArgs.ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Started, project));
 
         var ranSuccessfully = true;
 
@@ -71,7 +72,7 @@ public abstract class ServerTask
         {
             // Invoke the OnFailed event
             OnFailed?.Invoke(this,
-                ServerTaskErrorArgs.ErrorArgs(this, serverTaskManager, ServerTaskEventType.Failed, project, exception));
+                ServerTaskErrorEventArgs.ErrorArgs(this, serverTaskManager, ServerTaskEventType.Failed, project, exception));
 
             ranSuccessfully = false;
         }
@@ -79,7 +80,7 @@ public abstract class ServerTask
         // Invoke the OnCompleted event
         if (ranSuccessfully)
             OnCompleted?.Invoke(this,
-                ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Completed, project));
+                ServerTaskEventArgs.ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Completed, project));
     }
 
     /// <summary>
@@ -111,7 +112,7 @@ public abstract class ServerTask
 
     #region Static Methods
 
-    private static void LogServerTaskEvent(ServerTask sender, ServerTaskEventArgs e)
+    private static void LogServerTaskEvent(ServerTask sender, ServerTaskEventArgs.ServerTaskEventArgs e)
     {
         var logLevel = e.ServerTaskEventType switch
         {
@@ -127,7 +128,7 @@ public abstract class ServerTask
         // If the event is a failure, add a sub message containing the error message
         if (e.ServerTaskEventType == ServerTaskEventType.Failed)
         {
-            if (e is not ServerTaskErrorArgs errorArgs)
+            if (e is not ServerTaskErrorEventArgs errorArgs)
                 return;
             
             if (errorArgs.Exception == null)
@@ -135,14 +136,14 @@ public abstract class ServerTask
 
             logMessage.AddSubMessage(0, errorArgs.Exception.Source);
 
+            logMessage.AddSubMessage(0, errorArgs.Exception.Message);
+
             var splitStackTrace = errorArgs.Exception.StackTrace?.Replace("   ", "").Split('\n');
 
             // Split the stack trace into lines
             if (splitStackTrace != null)
                 foreach (var stackTrace in splitStackTrace)
                     logMessage.AddSubMessage(1, stackTrace);
-
-            logMessage.AddSubMessage(0, errorArgs.Exception.Message);
         }
     }
 
