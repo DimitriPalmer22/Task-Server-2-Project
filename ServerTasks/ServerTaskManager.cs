@@ -1,3 +1,5 @@
+using Task_Server_2.DebugLogger;
+
 namespace Task_Server_2.ServerTasks;
 
 public sealed class ServerTaskManager
@@ -180,7 +182,7 @@ public sealed class ServerTaskManager
                 }
 
                 // Log the event
-                Console.WriteLine($"Task {e.ServerTask.TaskName} was added to the active tasks list.");
+                DebugLog.Instance.Log(LogType.TaskManager, $"({ActiveTaskCount, 3} Active Tasks). \"{e.ServerTask.TaskName}\" was added to the active tasks list.");
 
                 break;
             }
@@ -200,7 +202,7 @@ public sealed class ServerTaskManager
                 }
 
                 // Log the event
-                Console.WriteLine($"Task {e.ServerTask.TaskName} was removed from the active tasks list.");
+                DebugLog.Instance.Log(LogType.TaskManager, $"({ActiveTaskCount, 3} Active Tasks). \"{e.ServerTask.TaskName}\" was removed from the active tasks list.");
 
                 break;
             }
@@ -208,7 +210,5 @@ public sealed class ServerTaskManager
             default:
                 break;
         }
-
-        Console.WriteLine($"Active Task Count: {ActiveTaskCount}");
     }
 }

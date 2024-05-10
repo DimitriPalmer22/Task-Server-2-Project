@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Task_Server_2.DebugLogger;
 using Task_Server_2.ServerTasks.ActivationConditions;
 
 namespace Task_Server_2.ServerTasks;
@@ -32,7 +34,7 @@ public abstract class ServerTask
     /// The C# Task object that will run this server task.
     /// </summary>
     private Task Task { get; set; }
-    
+
     /// <summary>
     /// The activation condition for the task.
     /// </summary>
@@ -65,11 +67,11 @@ public abstract class ServerTask
         {
             TaskLogic(serverTaskManager, project);
         }
-        catch (Exception e)
+        catch (Exception exception)
         {
-            // Invoke the OnCompleted event
+            // Invoke the OnFailed event
             OnFailed?.Invoke(this,
-                ServerTaskEventArgs.DefaultArgs(this, serverTaskManager, ServerTaskEventType.Failed, project));
+                ServerTaskErrorArgs.ErrorArgs(this, serverTaskManager, ServerTaskEventType.Failed, project, exception));
 
             ranSuccessfully = false;
         }
@@ -98,21 +100,50 @@ public abstract class ServerTask
         // If the task has already been created, return it.
         if (Task != null)
             return Task;
-        
+
         // Create a new task
         Task = new Task(() => Run(serverTaskManager, project));
-        
+
         return Task;
     }
-    
+
     #endregion Methods
 
     #region Static Methods
 
     private static void LogServerTaskEvent(ServerTask sender, ServerTaskEventArgs e)
     {
-        Console.WriteLine(
-            $"({e.DateTime}) [{e.ServerTaskEventType.ToString().ToUpper()}] {{{e.TaskManager}}} {e.ServerTask.TaskName}.");
+        var logLevel = e.ServerTaskEventType switch
+        {
+            ServerTaskEventType.Started => LogType.Event,
+            ServerTaskEventType.Completed => LogType.Event,
+            ServerTaskEventType.Failed => LogType.Error,
+            _ => LogType.Normal
+        };
+
+        var logMessage = DebugLog.Instance.Log(logLevel,
+            $"[{e.ServerTaskEventType.ToString().ToUpper(),-10}] \"{e.ServerTask.TaskName}\".");
+
+        // If the event is a failure, add a sub message containing the error message
+        if (e.ServerTaskEventType == ServerTaskEventType.Failed)
+        {
+            if (e is not ServerTaskErrorArgs errorArgs)
+                return;
+            
+            if (errorArgs.Exception == null)
+                return;
+
+            logMessage.AddSubMessage(0, errorArgs.Exception.Source);
+
+            var splitStackTrace = errorArgs.Exception.StackTrace?.Replace("   ", "").Split('\n');
+
+            // Split the stack trace into lines
+            if (splitStackTrace != null)
+                foreach (var stackTrace in splitStackTrace)
+                    logMessage.AddSubMessage(1, stackTrace);
+
+            logMessage.AddSubMessage(0, errorArgs.Exception.Message);
+        }
     }
 
     #endregion Static Methods

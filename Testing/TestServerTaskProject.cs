@@ -24,11 +24,11 @@ public class TestServerTaskProject : ServerTaskProject
     {
         _keyActions.Add(ConsoleKey.Q, StopProject);
 
-
         _keyActions.Add(ConsoleKey.D1, TestOneTimeTask);
         _keyActions.Add(ConsoleKey.D2, TestTaskGroup);
         _keyActions.Add(ConsoleKey.D3, TestScheduledTask);
         _keyActions.Add(ConsoleKey.D4, ActionWrapperTest);
+        _keyActions.Add(ConsoleKey.D5, ExceptionTaskTest);
     }
 
     public void Start()
@@ -50,6 +50,11 @@ public class TestServerTaskProject : ServerTaskProject
     }
 
     #region Key Actions
+
+    private void StopProject()
+    {
+        _running = false;
+    }
 
     private void TestOneTimeTask()
     {
@@ -73,10 +78,6 @@ public class TestServerTaskProject : ServerTaskProject
         EnqueueTask(new TestServerTask(activationCondition, 5));
     }
 
-    private void StopProject()
-    {
-        _running = false;
-    }
 
     private void ActionWrapperTest()
     {
@@ -113,6 +114,14 @@ public class TestServerTaskProject : ServerTaskProject
 
         // Enqueue the task group
         EnqueueTask(taskGroup);
+    }
+
+    private void ExceptionTaskTest()
+    {
+        EnqueueTask(new FunctionWrapperServerTask(
+            "Exception Task", new SimpleActivationCondition(),
+            () => { throw new Exception("This is an exception"); }
+        ));
     }
 
     #endregion
