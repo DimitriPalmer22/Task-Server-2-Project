@@ -1,3 +1,5 @@
+using Task_Server_2.ServerTasks.ActivationConditions;
+
 namespace Task_Server_2.ServerTasks;
 
 /// <summary>
@@ -25,10 +27,6 @@ public abstract class ServerTask
     /// </summary>    
     public string TaskName { get; init; }
 
-    /// <summary>
-    /// Will this task be awaited by the task manager?
-    /// </summary>
-    protected internal bool Awaited { get; init; }
 
     /// <summary>
     /// The C# Task object that will run this server task.
@@ -36,25 +34,19 @@ public abstract class ServerTask
     private Task Task { get; set; }
     
     /// <summary>
-    /// The time the task is scheduled to run.
+    /// The activation condition for the task.
     /// </summary>
-    public abstract DateTime ScheduledTime { get; }
+    protected internal IActivationCondition ActivationCondition { get; init; }
 
     #endregion Properties
 
-    protected ServerTask(string name, bool awaited)
+    protected ServerTask(string name, IActivationCondition activationCondition)
     {
         TaskName = name;
-        Awaited = awaited;
+        ActivationCondition = activationCondition;
     }
 
     #region Methods
-
-    /// <summary>
-    /// A flag to determine if the task is ready to run.
-    /// The task manager will check this flag before running the task.
-    /// </summary>
-    protected internal abstract bool ReadyToRun { get; }
 
     /// <summary>
     /// The method outside classes will use to run the task.

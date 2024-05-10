@@ -33,7 +33,7 @@ public abstract class ServerTaskProject
     public void EnqueueTask(ServerTask task)
     {
         lock (_queueLock)
-            _serverTasks.Enqueue(task, task.ScheduledTime);
+            _serverTasks.Enqueue(task, task.ActivationCondition.ScheduledTime);
     }
     
     public ServerTask PopTask()

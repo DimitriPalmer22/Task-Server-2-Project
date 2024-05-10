@@ -1,4 +1,5 @@
 using Task_Server_2.ServerTasks;
+using Task_Server_2.ServerTasks.ActivationConditions;
 
 namespace Task_Server_2.Testing;
 
@@ -42,8 +43,8 @@ public class TestServerTaskProject : ServerTaskProject
             Console.WriteLine("Press a key");
             var key = Console.ReadKey(true).Key;
 
-            if (_keyActions.ContainsKey(key))
-                _keyActions[key]();
+            if (_keyActions.TryGetValue(key, out var action))
+                action();
         }
     }
 
@@ -51,7 +52,7 @@ public class TestServerTaskProject : ServerTaskProject
 
     private void TestOneTimeTask()
     {
-        EnqueueTask(new TestOneTimeServerTask(5));
+        EnqueueTask(new TestServerTask(new SimpleActivationCondition(), 5));
     }
 
     private void TestTaskGroup()
@@ -59,14 +60,16 @@ public class TestServerTaskProject : ServerTaskProject
         List<ServerTask> tasks = new();
 
         for (int i = 0; i < 10; i++)
-            tasks.Add(new TestOneTimeServerTask(i + 1));
+            tasks.Add(new TestServerTask(new SimpleActivationCondition(), i + 1));
 
         EnqueueTask(new ServerTaskGroup("Test Task Group", ServerTaskGroupType.Sequential, tasks.ToArray()));
     }
 
     private void TestScheduledTask()
     {
-        EnqueueTask(new TestScheduledServerTask(DateTime.Now.AddSeconds(5), 5));
+        var activationCondition = new ScheduledActivationCondition(DateTime.Now.AddSeconds(5));
+
+        EnqueueTask(new TestServerTask(activationCondition, 5));
     }
 
     private void StopProject()

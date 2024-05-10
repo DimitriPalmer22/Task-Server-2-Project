@@ -1,14 +1,15 @@
 using Task_Server_2.ServerTasks;
+using Task_Server_2.ServerTasks.ActivationConditions;
 
 namespace Task_Server_2.Testing;
 
-public class TestScheduledServerTask : ScheduledServerTask
+public class TestServerTask : ServerTask
 {
     // The number of iterations to run the task
     private readonly int _iterations;
-    
-    public TestScheduledServerTask(DateTime scheduledTime, int iterations)
-        : base($"Scheduled Test Task with {iterations} iterations @ {scheduledTime}", scheduledTime, false)
+
+    public TestServerTask(IActivationCondition activationCondition, int iterations)
+        : base($"Test one time task with {iterations} iterations", activationCondition)
     {
         _iterations = iterations;
 

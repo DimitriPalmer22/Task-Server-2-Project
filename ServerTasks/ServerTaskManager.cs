@@ -116,7 +116,7 @@ public sealed class ServerTaskManager
             // Go through each of the server task projects and add their ready tasks to the queue
             foreach (var project in _serverTaskProjects)
             {
-                while (project.NextItem is { ReadyToRun: true })
+                while (project.NextItem is { ActivationCondition.ReadyToRun: true })
                 {
                     (ServerTask task, ServerTaskProject project) queueItem = (project.PopTask(), project);
 

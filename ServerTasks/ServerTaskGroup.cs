@@ -1,9 +1,11 @@
+using Task_Server_2.ServerTasks.ActivationConditions;
+
 namespace Task_Server_2.ServerTasks;
 
 /// <summary>
 /// Group a set of tasks together so that they can be run as a single task.
 /// </summary>
-public sealed class ServerTaskGroup : OneTimeServerTask
+public sealed class ServerTaskGroup : ServerTask
 {
     /// <summary>
     /// The queue of tasks to run.
@@ -16,7 +18,7 @@ public sealed class ServerTaskGroup : OneTimeServerTask
     private ServerTaskGroupType GroupType { get; }
 
     public ServerTaskGroup(string name, ServerTaskGroupType groupType, params ServerTask[] tasks)
-        : base(name, false)
+        : base(name, new SimpleActivationCondition())
     {
         GroupType = groupType;
 
@@ -46,7 +48,7 @@ public sealed class ServerTaskGroup : OneTimeServerTask
     {
         // Run each task in the queue
         // Make sure the task is ready to run
-        while (_taskQueue.Count > 0 && _taskQueue.Peek().ReadyToRun)
+        while (_taskQueue.Count > 0 && _taskQueue.Peek().ActivationCondition.ReadyToRun)
         {
             // Get the next task
             var task = _taskQueue.Dequeue();
