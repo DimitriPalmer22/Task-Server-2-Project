@@ -28,6 +28,7 @@ public class TestServerTaskProject : ServerTaskProject
         _keyActions.Add(ConsoleKey.D1, TestOneTimeTask);
         _keyActions.Add(ConsoleKey.D2, TestTaskGroup);
         _keyActions.Add(ConsoleKey.D3, TestScheduledTask);
+        _keyActions.Add(ConsoleKey.D4, ActionWrapperTest);
     }
 
     public void Start()
@@ -75,6 +76,43 @@ public class TestServerTaskProject : ServerTaskProject
     private void StopProject()
     {
         _running = false;
+    }
+
+    private void ActionWrapperTest()
+    {
+        void WrapperBody1()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                Console.WriteLine($"Wrapper iteration {i + 1}");
+                Thread.Sleep(100);
+            }
+        }
+
+        void WrapperBody2(int iterations, string message, int waitTime)
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                Console.WriteLine($"{message}. Iteration {i + 1}");
+                Thread.Sleep(waitTime);
+            }
+        }
+
+        List<ServerTask> wrapperTasks =
+        [
+            new FunctionWrapperServerTask("Wrapper 1", new SimpleActivationCondition(), WrapperBody1),
+            new FunctionWrapperServerTask(
+                "Wrapper 2", new SimpleActivationCondition(), WrapperBody2,
+                5, "Wrapper 2 Dynamic Invoke", 200
+            )
+        ];
+
+        // Create a task group
+        var taskGroup =
+            new ServerTaskGroup("Wrapper Task Group", ServerTaskGroupType.Sequential, wrapperTasks.ToArray());
+
+        // Enqueue the task group
+        EnqueueTask(taskGroup);
     }
 
     #endregion
