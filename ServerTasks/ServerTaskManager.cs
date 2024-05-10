@@ -38,7 +38,7 @@ public sealed class ServerTaskManager
     /// <summary>
     /// How many times a second the Task Manager will check for new tasks.
     /// </summary>
-    private int updatesPerSecond = 60;
+    public int UpdatesPerSecond { get; set; } = 60;
 
     #endregion Fields
 
@@ -57,7 +57,7 @@ public sealed class ServerTaskManager
             return _instance;
         }
     }
-    
+
     public int ActiveTaskCount
     {
         get
@@ -145,7 +145,7 @@ public sealed class ServerTaskManager
             }
 
             // Wait for the next update
-            Thread.Sleep(1000 / updatesPerSecond);
+            Thread.Sleep(1000 / UpdatesPerSecond);
         }
     }
 

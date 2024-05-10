@@ -13,6 +13,9 @@ public abstract class ServerTaskProject
     /// </summary>
     private readonly object _queueLock = new();
 
+    /// <summary>
+    /// Peek at the next item in the queue.
+    /// </summary>
     public ServerTask NextItem
     {
         get
@@ -30,10 +33,7 @@ public abstract class ServerTaskProject
     public void EnqueueTask(ServerTask task)
     {
         lock (_queueLock)
-        {
-            // TODO: Replace with the date's scheduled time.
-            _serverTasks.Enqueue(task, DateTime.Now);
-        }
+            _serverTasks.Enqueue(task, task.ScheduledTime);
     }
     
     public ServerTask PopTask()

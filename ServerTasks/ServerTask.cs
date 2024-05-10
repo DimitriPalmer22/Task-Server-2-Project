@@ -30,7 +30,15 @@ public abstract class ServerTask
     /// </summary>
     protected internal bool Awaited { get; init; }
 
-    internal Task Task { get; private set; }
+    /// <summary>
+    /// The C# Task object that will run this server task.
+    /// </summary>
+    private Task Task { get; set; }
+    
+    /// <summary>
+    /// The time the task is scheduled to run.
+    /// </summary>
+    public abstract DateTime ScheduledTime { get; }
 
     #endregion Properties
 
