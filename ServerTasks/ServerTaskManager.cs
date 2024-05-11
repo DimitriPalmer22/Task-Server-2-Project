@@ -202,7 +202,7 @@ public sealed class ServerTaskManager
         _thread.Join();
 
         // Print a blank line
-        DebugLog.Instance.WriteLine("\n");
+        DebugLog.Instance.WriteLine("");
 
         // Invoke the OnStopped event
         OnStopped?.Invoke(this, TaskManagerEventArgs.Empty);
