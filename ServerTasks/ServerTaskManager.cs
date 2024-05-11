@@ -17,11 +17,6 @@ public sealed class ServerTaskManager
     private static ServerTaskManager _instance;
 
     /// <summary>
-    /// The list of <see cref="ServerTaskProject"/>s that this class will manage.
-    /// </summary>
-    private readonly List<ServerTaskProject> _serverTaskProjects = new();
-
-    /// <summary>
     /// Store the active tasks in a dictionary grouped by their project.
     /// </summary>
     private readonly Dictionary<ServerTaskProject, List<ServerTask>> _activeTasks = new();
@@ -103,25 +98,12 @@ public sealed class ServerTaskManager
         OnTaskCompleted += ReAdd;
     }
 
-    public void AddProject(ServerTaskProject project)
-    {
-        // Check if the project is already in the list
-        if (_serverTaskProjects.Contains(project))
-            return;
-
-        _serverTaskProjects.Add(project);
-    }
-
     /// <summary>
     /// Start the <see cref="ServerTaskManager"/>.
     /// This generates a new thread.
     /// </summary>
-    public void Start(params ServerTaskProject[] projects)
+    public void Start()
     {
-        // Add the projects to the server task manager
-        foreach (var project in projects)
-            AddProject(project);
-
         // Create a new thread
         _thread = new Thread(Run);
 
@@ -142,8 +124,11 @@ public sealed class ServerTaskManager
             // Initialize a queue of server tasks
             Queue<(ServerTask serverTask, ServerTaskProject taskProject)> taskQueue = new();
 
+            // Get the active server task projects
+            var serverTaskProjects = ServerTaskProject.GetActiveProjects();
+            
             // Go through each of the server task projects and add their ready tasks to the queue
-            foreach (var project in _serverTaskProjects)
+            foreach (var project in serverTaskProjects)
             {
                 while (project.NextItem is { ActivationCondition.ReadyToRun: true })
                 {

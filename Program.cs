@@ -18,7 +18,7 @@ public static class Program
         var serverTaskProject = new TestServerTaskProject();
 
         // Start the server task manager
-        ServerTaskManager.Instance.Start(serverTaskProject);
+        ServerTaskManager.Instance.Start();
 
         // Run the project
         serverTaskProject.Start();
