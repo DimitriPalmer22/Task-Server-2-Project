@@ -41,7 +41,7 @@ public abstract class ServerTaskProject
         }
     }
 
-    public ServerTaskProject()
+    protected ServerTaskProject()
     {
         AddProject(this);
     }
