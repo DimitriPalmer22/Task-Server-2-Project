@@ -18,7 +18,13 @@ public sealed class ServerTaskGroup : ServerTask
     private ServerTaskGroupType GroupType { get; }
 
     public ServerTaskGroup(string name, ServerTaskGroupType groupType, params ServerTask[] tasks)
-        : base(name, new SimpleActivationCondition())
+        : this(name, new SimpleActivationCondition(), groupType, tasks)
+    {
+    }
+
+    public ServerTaskGroup(string name, IActivationCondition activationCondition, ServerTaskGroupType groupType,
+        params ServerTask[] tasks)
+        : base(name, activationCondition)
     {
         GroupType = groupType;
 
@@ -46,16 +52,19 @@ public sealed class ServerTaskGroup : ServerTask
 
     private void RunSequential(ServerTaskManager serverTaskManager, ServerTaskProject serverTaskProject)
     {
+        // Copy the queue so that we can modify it
+        var currentQueue = new Queue<ServerTask>(_taskQueue);
+        
         // Run each task in the queue
         // Make sure the task is ready to run
-        while (_taskQueue.Count > 0 && _taskQueue.Peek().ActivationCondition.ReadyToRun)
+        while (currentQueue.Count > 0 && _taskQueue.Peek().ActivationCondition.ReadyToRun)
         {
             // Get the next task
-            var task = _taskQueue.Dequeue();
-            
+            var task = currentQueue.Dequeue();
+
             // Create a C# task from the server task
             var cTask = new Task(() => task.Run(serverTaskManager, serverTaskProject));
-            
+
             // Run the task synchronously
             cTask.RunSynchronously();
         }
@@ -65,12 +74,15 @@ public sealed class ServerTaskGroup : ServerTask
     {
         // Create a list of the current C# tasks.
         List<Task> currentTasks = new();
+        
+        // Copy the queue so that we can modify it
+        var currentQueue = new Queue<ServerTask>(_taskQueue);
 
         // Run each task asynchronously
-        while (_taskQueue.Count > 0)
+        while (currentQueue.Count > 0)
         {
             // Get the next task
-            var task = _taskQueue.Dequeue();
+            var task = currentQueue.Dequeue();
 
             // Run the task asynchronously
             var cTask = Task.Run(() => task.Run(serverTaskManager, serverTaskProject));
